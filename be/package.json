@@ -1,15 +1,22 @@
 {
-  "name": "dms",
+  "name": "dms-backend",
   "version": "1.0.0",
+  "description": "DMS Backend API - Data Management System for workers and admins",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "NODE_ENV=production node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "echo \"No build step required for Node.js\"",
+    "lint": "echo \"Linting not configured\""
   },
-  "keywords": [],
+  "keywords": ["dms", "api", "express", "mongodb", "worker-management"],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "dependencies": {
     "express": "^4.18.2",
     "mongoose": "^8.0.0",
