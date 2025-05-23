@@ -1,0 +1,272 @@
+const Generator = require('../models/generator');
+const MainContainer = require('../models/mainContainer');
+const FuelTransaction = require('../models/fuelTransaction');
+const RunLog = require('../models/runLog');
+const { notifyAdmin } = require('../utils/emailService');
+
+const addMainContainerFuel = async (req, res) => {
+    try {
+        const { amount } = req.body;
+        const worker = req.user;  // From auth middleware
+
+        const mainContainer = await MainContainer.findOne();
+        if (!mainContainer) {
+            return res.status(404).json({ error: 'Main container not found' });
+        }
+
+        const transaction = await FuelTransaction.create({
+            type: 'main_entry',
+            amount,
+            worker: worker._id
+        });
+
+        mainContainer.currentFuel += amount;
+        mainContainer.lastRefillDate = new Date();
+        await mainContainer.save();
+
+        await notifyAdmin('main_entry', {
+            amount,
+            workerName: worker.name
+        });
+
+        res.json({ success: true, transaction });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const transferFuelToGenerator = async (req, res) => {
+    try {
+        const { generatorId, amount } = req.body;
+        const worker = req.user;
+
+        const mainContainer = await MainContainer.findOne();
+        if (!mainContainer || mainContainer.currentFuel < amount) {
+            return res.status(400).json({ error: 'Insufficient fuel in main container' });
+        }
+
+        const generator = await Generator.findById(generatorId);
+        if (!generator) {
+            return res.status(404).json({ error: 'Generator not found' });
+        }
+
+        if (generator.currentFuel + amount > generator.capacity) {
+            return res.status(400).json({ error: 'Generator capacity exceeded' });
+        }
+
+        const transaction = await FuelTransaction.create({
+            type: 'to_generator',
+            amount,
+            fromContainer: mainContainer._id,
+            toGenerator: generator._id,
+            worker: worker._id
+        });
+
+        mainContainer.currentFuel -= amount;
+        await mainContainer.save();
+
+        generator.currentFuel += amount;
+        await generator.save();
+
+        await notifyAdmin('to_generator', {
+            amount,
+            generatorName: generator.name,
+            workerName: worker.name
+        });
+
+        res.json({ success: true, transaction });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const addRunLog = async (req, res) => {
+    try {
+        const { generatorId, startTime, endTime } = req.body;
+        const worker = req.user;
+
+        const generator = await Generator.findById(generatorId);
+        if (!generator) {
+            return res.status(404).json({ error: 'Generator not found' });
+        }
+
+        const duration = Math.round((new Date(endTime) - new Date(startTime)) / 60000); // minutes
+        const fuelConsumed = (duration / 60) * generator.fuelEfficiency;
+
+        if (generator.currentFuel < fuelConsumed) {
+            return res.status(400).json({ error: 'Insufficient fuel in generator' });
+        }
+
+        const runLog = await RunLog.create({
+            generator: generator._id,
+            worker: worker._id,
+            startTime,
+            endTime,
+            duration,
+            fuelConsumed
+        });
+
+        generator.currentFuel -= fuelConsumed;
+        await generator.save();
+
+        await notifyAdmin('run_log', {
+            generatorName: generator.name,
+            duration,
+            fuelConsumed,
+            workerName: worker.name
+        });
+
+        res.json({ success: true, runLog });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// For admin dashboard
+const getStats = async (req, res) => {
+    try {
+        const generators = await Generator.find().populate('operator');
+        const mainContainer = await MainContainer.findOne();
+        const recentTransactions = await FuelTransaction.find()
+            .sort('-createdAt')
+            .limit(10)
+            .populate('worker toGenerator');
+        const recentRunLogs = await RunLog.find()
+            .sort('-createdAt')
+            .limit(10)
+            .populate('generator worker');
+
+        res.json({
+            generators,
+            mainContainer,
+            recentTransactions,
+            recentRunLogs
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const getHistory = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        
+        const query = {};
+        if (startDate && endDate) {
+            query.createdAt = {
+                $gte: new Date(startDate),
+                $lte: new Date(endDate)
+            };
+        }
+
+        const transactions = await FuelTransaction.find(query)
+            .sort('-createdAt')
+            .populate('worker', 'name')
+            .populate('toGenerator', 'name');
+
+        const runLogs = await RunLog.find(query)
+            .sort('-createdAt')
+            .populate('generator', 'name')
+            .populate('worker', 'name');
+
+        res.json({
+            transactions,
+            runLogs
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// For worker dashboard - get worker's own history
+const getWorkerHistory = async (req, res) => {
+    try {
+        const workerId = req.user._id;
+        const { startDate, endDate } = req.query;
+        
+        const query = { worker: workerId };
+        if (startDate && endDate) {
+            query.createdAt = {
+                $gte: new Date(startDate),
+                $lte: new Date(endDate)
+            };
+        }
+
+        // Get worker's transactions (fuel entries and transfers)
+        const transactions = await FuelTransaction.find(query)
+            .sort('-createdAt')
+            .limit(20)
+            .populate('toGenerator', 'name');
+
+        // Get worker's run logs
+        const runLogs = await RunLog.find(query)
+            .sort('-createdAt')
+            .limit(20)
+            .populate('generator', 'name');
+
+        res.json({
+            transactions,
+            runLogs
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Main Container Management
+const createMainContainer = async (req, res) => {
+    try {
+        const { capacity } = req.body;
+
+        // Check if main container already exists
+        const existingContainer = await MainContainer.findOne();
+        if (existingContainer) {
+            return res.status(400).json({ error: 'Main container already exists. Use update instead.' });
+        }
+
+        const mainContainer = new MainContainer({
+            capacity,
+            currentFuel: 0
+        });
+
+        await mainContainer.save();
+        res.status(201).json(mainContainer);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const updateMainContainer = async (req, res) => {
+    try {
+        const { capacity } = req.body;
+
+        const mainContainer = await MainContainer.findOne();
+        if (!mainContainer) {
+            return res.status(404).json({ error: 'Main container not found' });
+        }
+
+        if (capacity && capacity < mainContainer.currentFuel) {
+            return res.status(400).json({ error: 'New capacity cannot be less than current fuel level' });
+        }
+
+        if (capacity) {
+            mainContainer.capacity = capacity;
+        }
+
+        await mainContainer.save();
+        res.json(mainContainer);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+module.exports = {
+    addMainContainerFuel,
+    transferFuelToGenerator,
+    addRunLog,
+    getStats,
+    getHistory,
+    getWorkerHistory,
+    createMainContainer,
+    updateMainContainer
+}; 
