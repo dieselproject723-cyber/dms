@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { getApiUrl } from '../../config/api';
 
 const MainContainerEntry = ({ onSuccess }) => {
   const [amount, setAmount] = useState('');
@@ -10,7 +11,7 @@ const MainContainerEntry = ({ onSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post('/api/fuel/main-container/add', { amount: Number(amount) });
+      await axios.post(getApiUrl('/api/fuel/main-container/add'), { amount: Number(amount) });
       toast.success('Fuel added successfully');
       setAmount('');
       onSuccess?.();

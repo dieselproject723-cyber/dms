@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { getApiUrl } from '../config/api';
 import GeneratorList from '../components/worker/GeneratorList';
 import AddRunLog from '../components/worker/AddRunLog';
 import WorkerActivityHistory from '../components/worker/WorkerActivityHistory';
@@ -17,7 +18,7 @@ const WorkerDashboard = () => {
 
   const fetchGenerators = async () => {
     try {
-      const response = await axios.get('/api/generators');
+      const response = await axios.get(getApiUrl('/api/generators'));
       setGenerators(response.data);
     } catch (error) {
       toast.error('Failed to fetch generators');
@@ -51,9 +52,10 @@ const WorkerDashboard = () => {
           <AddRunLog generators={generators} onSuccess={handleActivityUpdate} />
         </div>
       </div>
-
-      {/* Activity History Section */}
-      <div className="mb-8">
+      
+      {/* Activity history section */}
+      <div className="bg-white p-6 rounded-lg shadow-lg">
+        <h2 className="text-xl font-semibold mb-4 text-gray-700">Your Activity History</h2>
         <WorkerActivityHistory />
       </div>
     </div>

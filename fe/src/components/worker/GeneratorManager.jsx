@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { getApiUrl } from '../../config/api';
 
 const GeneratorManager = ({ onSuccess, editingGenerator, onCancelEdit }) => {
   const [formData, setFormData] = useState({
@@ -43,7 +44,7 @@ const GeneratorManager = ({ onSuccess, editingGenerator, onCancelEdit }) => {
 
   const fetchWorkers = async () => {
     try {
-      const response = await axios.get('/api/auth/workers');
+      const response = await axios.get(getApiUrl('/api/auth/workers'));
       setWorkers(response.data);
     } catch (error) {
       toast.error('Failed to fetch workers');
@@ -75,7 +76,7 @@ const GeneratorManager = ({ onSuccess, editingGenerator, onCancelEdit }) => {
       };
 
       if (isEdit) {
-        await axios.patch(`/api/generators/${editingGenerator._id}`, {
+        await axios.patch(getApiUrl(`/api/generators/${editingGenerator._id}`), {
           name: payload.name,
           location: payload.location,
           operator: payload.operatorId
@@ -83,7 +84,7 @@ const GeneratorManager = ({ onSuccess, editingGenerator, onCancelEdit }) => {
         toast.success('Generator updated successfully');
         onCancelEdit?.();
       } else {
-        await axios.post('/api/generators', payload);
+        await axios.post(getApiUrl('/api/generators'), payload);
         toast.success('Generator created successfully');
         setFormData({
           name: '',

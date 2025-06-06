@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { getApiUrl } from '../../config/api';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import Select from 'react-select';
@@ -15,7 +16,7 @@ const AddRunLog = ({ generators, onSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post('/api/fuel/generator/run-log', {
+      await axios.post(getApiUrl('/api/fuel/generator/run-log'), {
         generatorId,
         startTime,
         endTime

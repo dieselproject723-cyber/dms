@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { getApiUrl } from '../../config/api';
 
 const AddWorker = ({ onSuccess }) => {
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', address: '' });
@@ -14,7 +15,7 @@ const AddWorker = ({ onSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post('/api/auth/register', { ...form, role: 'worker' });
+      await axios.post(getApiUrl('/api/auth/register'), { ...form, role: 'worker' });
       toast.success('Worker account created');
       setForm({ name: '', email: '', password: '', phone: '', address: '' });
       onSuccess?.();

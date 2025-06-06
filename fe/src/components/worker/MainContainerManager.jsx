@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { getApiUrl } from '../../config/api';
 
 const MainContainerManager = ({ onSuccess, existingContainer }) => {
   const [capacity, setCapacity] = useState('');
