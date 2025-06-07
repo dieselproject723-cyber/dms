@@ -5,6 +5,7 @@ import { getApiUrl } from '../../config/api';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import Select from 'react-select';
+import { FaRegClock } from 'react-icons/fa';
 
 const AddRunLog = ({ generators, onSuccess }) => {
   const [generatorId, setGeneratorId] = useState('');
@@ -52,31 +53,37 @@ const AddRunLog = ({ generators, onSuccess }) => {
         <label className="block text-sm font-medium text-gray-700">
           Start Time
         </label>
-        <DatePicker
-          selected={startTime}
-          onChange={setStartTime}
-          showTimeSelect
-          showTimeSelectMinutes
-          timeIntervals={1}
-          dateFormat="Pp"
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-        />
+        <div className="relative">
+          <DatePicker
+            selected={startTime}
+            onChange={setStartTime}
+            showTimeSelect
+            showTimeSelectMinutes
+            timeIntervals={1}
+            dateFormat="Pp"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm pl-10"
+          />
+          <FaRegClock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+        </div>
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700">
           End Time
         </label>
-        <DatePicker
-          selected={endTime}
-          onChange={setEndTime}
-          showTimeSelect
-          showTimeSelectMinutes
-          timeIntervals={1}
-          dateFormat="Pp"
-          minDate={startTime}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-        />
+        <div className="relative">
+          <DatePicker
+            selected={endTime}
+            onChange={setEndTime}
+            showTimeSelect
+            showTimeSelectMinutes
+            timeIntervals={1}
+            dateFormat="Pp"
+            minDate={startTime}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm pl-10"
+          />
+          <FaRegClock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+        </div>
       </div>
 
       <button
@@ -90,4 +97,4 @@ const AddRunLog = ({ generators, onSuccess }) => {
   );
 };
 
-export default AddRunLog; 
+export default AddRunLog;

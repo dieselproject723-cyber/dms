@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { getApiUrl } from '../../config/api';
 
 const WorkerActivityHistory = () => {
   const [runLogs, setRunLogs] = useState([]);
@@ -12,7 +13,7 @@ const WorkerActivityHistory = () => {
 
   const fetchWorkerHistory = async () => {
     try {
-      const response = await axios.get('/api/fuel/worker/history');
+      const response = await axios.get(getApiUrl('/api/fuel/worker/history'));
       setRunLogs(response.data.runLogs || []);
     } catch (error) {
       toast.error('Failed to fetch activity history');

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { getApiUrl } from '../config/api';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -17,7 +18,7 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post('/api/auth/register', {
+      const response = await axios.post(getApiUrl('/api/auth/register'), {
         name,
         email,
         password,

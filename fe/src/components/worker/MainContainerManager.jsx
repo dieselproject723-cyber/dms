@@ -23,10 +23,10 @@ const MainContainerManager = ({ onSuccess, existingContainer }) => {
     setLoading(true);
     try {
       if (isEdit) {
-        await axios.patch('/api/fuel/main-container', { capacity: Number(capacity) });
+        await axios.patch(getApiUrl('/api/fuel/main-container'), { capacity: Number(capacity) });
         toast.success('Main container updated successfully');
       } else {
-        await axios.post('/api/fuel/main-container', { capacity: Number(capacity) });
+        await axios.post(getApiUrl('/api/fuel/main-container'), { capacity: Number(capacity) });
         toast.success('Main container created successfully');
       }
       onSuccess?.();

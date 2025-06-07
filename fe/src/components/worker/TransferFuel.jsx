@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { getApiUrl } from '../../config/api';
 
 const TransferFuel = ({ generators, mainContainer, onSuccess }) => {
   const [generatorId, setGeneratorId] = useState('');
@@ -11,7 +12,7 @@ const TransferFuel = ({ generators, mainContainer, onSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post('/api/fuel/generator/transfer', {
+      await axios.post(getApiUrl('/api/fuel/generator/transfer'), {
         generatorId,
         amount: Number(amount)
       });

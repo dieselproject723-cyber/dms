@@ -9,6 +9,7 @@ import MainContainerManager from '../components/worker/MainContainerManager';
 import GeneratorManager from '../components/worker/GeneratorManager';
 import GeneratorsList from '../components/worker/GeneratorsList';
 import ProfileButton from '../components/ProfileButton';
+import { getApiUrl } from '../config/api';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -39,7 +40,7 @@ const AdminDashboard = () => {
     const fetchStats = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await axios.get('/api/fuel/stats');
+            const response = await axios.get(getApiUrl('/api/fuel/stats'));
             setStats(response.data);
         } catch (error) {
             toast.error('Error fetching dashboard stats. Please check backend and console.');
