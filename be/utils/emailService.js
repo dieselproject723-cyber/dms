@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const User = require('../models/user');
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',  // Replace with your email service
@@ -10,15 +11,15 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async (to, subject, text) => {
     try {
-        await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to,
-            subject,
-            text
-        });
-        console.log('Email sent successfully');
+        // await transporter.sendMail({
+        //     from: process.env.EMAIL_USER,
+        //     to,
+        //     subject,
+        //     text
+        // });
+        console.log('Email sending is temporarily disabled.');
     } catch (error) {
-        console.error('Error sending email:', error);
+        console.error('Error sending email (though disabled):', error);
     }
 };
 

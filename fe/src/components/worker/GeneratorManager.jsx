@@ -78,7 +78,9 @@ const GeneratorManager = ({ onSuccess, editingGenerator, onCancelEdit }) => {
       if (isEdit) {
         await axios.patch(getApiUrl(`/api/generators/${editingGenerator._id}`), {
           name: payload.name,
+          capacity: payload.capacity,
           location: payload.location,
+          fuelEfficiency: payload.fuelEfficiency,
           operator: payload.operatorId
         });
         toast.success('Generator updated successfully');
@@ -164,13 +166,12 @@ const GeneratorManager = ({ onSuccess, editingGenerator, onCancelEdit }) => {
             min="1"
             step="0.01"
             required
-            disabled={isEdit}
-            className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="Enter fuel capacity"
           />
           {isEdit && (
             <p className="text-xs text-gray-500 mt-1">
-              Capacity cannot be changed after creation
+              Current Fuel: <span className="font-bold text-blue-600">{editingGenerator.currentFuel?.toFixed(2) || '0.00'}L</span>
             </p>
           )}
         </div>
@@ -202,13 +203,12 @@ const GeneratorManager = ({ onSuccess, editingGenerator, onCancelEdit }) => {
             min="0.1"
             step="0.1"
             required
-            disabled={isEdit}
-            className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="Enter fuel consumption rate"
           />
           {isEdit && (
             <p className="text-xs text-gray-500 mt-1">
-              Fuel efficiency cannot be changed after creation
+              Current Fuel Efficiency: <span className="font-bold text-blue-600">{editingGenerator.fuelEfficiency?.toFixed(2) || '0.00'} L/hour</span>
             </p>
           )}
         </div>
@@ -223,16 +223,13 @@ const GeneratorManager = ({ onSuccess, editingGenerator, onCancelEdit }) => {
             onChange={handleChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           >
-            <option value="">Select an operator (optional)</option>
+            <option value="">Select an operator</option>
             {workers.map(worker => (
               <option key={worker._id} value={worker._id}>
                 {worker.name} ({worker.email})
               </option>
             ))}
           </select>
-          <p className="text-xs text-gray-500 mt-1">
-            You can assign a worker to operate this generator
-          </p>
         </div>
 
         <div className="flex gap-3 pt-4">

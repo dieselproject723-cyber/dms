@@ -36,7 +36,14 @@ const getGenerator = async (req, res) => {
 
 const getGenerators = async (req, res) => {
     try {
-        const generators = await Generator.find()
+        let query = {};
+
+        // If the authenticated user is a worker, filter by their assigned generators
+        if (req.user && req.user.role === 'worker') {
+            query.operator = req.user._id;
+        }
+
+        const generators = await Generator.find(query)
             .populate('operator', 'name email');
         res.json(generators);
     } catch (error) {

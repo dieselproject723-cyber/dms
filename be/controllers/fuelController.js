@@ -7,7 +7,7 @@ const { notifyAdmin } = require('../utils/emailService');
 const addMainContainerFuel = async (req, res) => {
     try {
         const { amount } = req.body;
-        const worker = req.user;  // From auth middleware
+        const adminUser = req.user;  // Admin user from auth middleware
 
         const mainContainer = await MainContainer.findOne();
         if (!mainContainer) {
@@ -17,7 +17,7 @@ const addMainContainerFuel = async (req, res) => {
         const transaction = await FuelTransaction.create({
             type: 'main_entry',
             amount,
-            worker: worker._id
+            worker: adminUser._id
         });
 
         mainContainer.currentFuel += amount;
@@ -26,7 +26,7 @@ const addMainContainerFuel = async (req, res) => {
 
         await notifyAdmin('main_entry', {
             amount,
-            workerName: worker.name
+            workerName: adminUser.name
         });
 
         res.json({ success: true, transaction });
@@ -38,7 +38,7 @@ const addMainContainerFuel = async (req, res) => {
 const transferFuelToGenerator = async (req, res) => {
     try {
         const { generatorId, amount } = req.body;
-        const worker = req.user;
+        const adminUser = req.user;
 
         const mainContainer = await MainContainer.findOne();
         if (!mainContainer || mainContainer.currentFuel < amount) {
@@ -59,7 +59,7 @@ const transferFuelToGenerator = async (req, res) => {
             amount,
             fromContainer: mainContainer._id,
             toGenerator: generator._id,
-            worker: worker._id
+            worker: adminUser._id
         });
 
         mainContainer.currentFuel -= amount;
@@ -71,7 +71,7 @@ const transferFuelToGenerator = async (req, res) => {
         await notifyAdmin('to_generator', {
             amount,
             generatorName: generator.name,
-            workerName: worker.name
+            workerName: adminUser.name
         });
 
         res.json({ success: true, transaction });

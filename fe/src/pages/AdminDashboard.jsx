@@ -20,6 +20,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import WorkersList from '../components/worker/WorkersList';
 
 ChartJS.register(
   CategoryScale,
@@ -33,6 +34,7 @@ ChartJS.register(
 
 const AdminDashboard = () => {
     const [stats, setStats] = useState(null);
+    const [workers, setWorkers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('dashboard');
     const [editingGenerator, setEditingGenerator] = useState(null);
@@ -40,11 +42,16 @@ const AdminDashboard = () => {
     const fetchStats = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await axios.get(getApiUrl('/api/fuel/stats'));
-            setStats(response.data);
+            const [fuelStatsResponse, workersResponse] = await Promise.all([
+                axios.get(getApiUrl('/api/fuel/stats')),
+                axios.get(getApiUrl('/api/auth/workers'))
+            ]);
+            setStats(fuelStatsResponse.data);
+            setWorkers(workersResponse.data);
         } catch (error) {
-            toast.error('Error fetching dashboard stats. Please check backend and console.');
-            setStats(null); 
+            toast.error('Error fetching dashboard data. Please check backend and console.');
+            setStats(null);
+            setWorkers([]);
         } finally {
             setLoading(false);
         }
@@ -57,7 +64,7 @@ const AdminDashboard = () => {
     }, [fetchStats]);
 
     const handleSuccess = () => {
-        fetchStats(); // Re-fetch all stats on success of an action
+        fetchStats(); // Re-fetch all stats and workers on success of an action
     };
 
     const handleEditGenerator = (generator) => {
@@ -82,6 +89,7 @@ const AdminDashboard = () => {
     const safeMainContainer = stats?.mainContainer || {};
     const safeRecentTransactions = Array.isArray(stats?.recentTransactions) ? stats.recentTransactions : [];
     const safeRecentRunLogs = Array.isArray(stats?.recentRunLogs) ? stats.recentRunLogs : [];
+    const safeWorkers = Array.isArray(workers) ? workers : [];
 
     const generatorData = {
         labels: safeGenerators.map(g => g.name),
@@ -217,9 +225,12 @@ const AdminDashboard = () => {
 
             case 'workers':
                 return (
-                    <div className="bg-white p-6 rounded-lg shadow-lg">
-                        <h2 className="text-2xl font-semibold mb-4 text-gray-600">Manage Worker Accounts</h2>
-                        <AddWorker onSuccess={handleSuccess} />
+                    <div className="space-y-8">
+                        <div className="bg-white p-6 rounded-lg shadow-lg">
+                            <h2 className="text-2xl font-semibold mb-4 text-gray-600">Manage Worker Accounts</h2>
+                            <AddWorker onSuccess={handleSuccess} />
+                        </div>
+                        <WorkersList workers={safeWorkers} />
                     </div>
                 );
 
