@@ -8,6 +8,7 @@ const fuelRoutes = require('./routes/fuelRoutes');
 const generatorRoutes = require('./routes/generatorRoutes');
 
 const app = express();
+console.log('Allowed CORS Origin:', process.env.CORS_ORIGIN);
 
 // CORS Configuration for production
 const corsOptions = {
@@ -15,6 +16,7 @@ const corsOptions = {
     credentials: true,
     optionsSuccessStatus: 200
 };
+console.log('Allowed CORS Origin:', process.env.CORS_ORIGIN);
 
 // Middleware
 app.use(cors(corsOptions));
