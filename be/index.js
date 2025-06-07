@@ -12,7 +12,7 @@ console.log('Allowed CORS Origin:', process.env.CORS_ORIGIN);
 
 // CORS Configuration for production
 const corsOptions = {
-    origin: 'https://dms-teal-five.vercel.app/',
+    origin: 'https://dms-teal-five.vercel.app',
     credentials: true,
     optionsSuccessStatus: 200
 };
