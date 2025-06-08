@@ -354,7 +354,7 @@ const getGeneratorReports = async (req, res) => {
                 };
             }
 
-            generatorStats[generatorId].totalFuelReceived = (generatorStats[generatorId].totalFuelReceived || 0) + transfer.amount;
+            generatorStats[generatorId].totalFuelReceived = (generatorStats[generatorId].totalFuelReceived || 0) + transfer.quantity;
         });
 
         // Calculate averages and format data
