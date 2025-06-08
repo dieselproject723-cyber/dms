@@ -164,7 +164,7 @@ const AdminDashboard = () => {
                                             <div key={transaction._id} className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
                                                 <p className="font-semibold text-indigo-700">
                                                   {transaction.type === 'main_entry' 
-                                                    ? `Main Container Refill (Qty: ${transaction.quantity}L, Rate: ${transaction.rate}, Amt: ${transaction.amount})` 
+                                                    ? `Main Container Refill (Qty: ${transaction.quantity}L, Rate: ${transaction.rate}, Amt: ₹${transaction.amount})` 
                                                     : `Transfer to ${transaction.toGenerator?.name || 'Generator'}`}
                                                 </p>
                                                 <p className="text-sm text-gray-700 mt-1">
@@ -175,9 +175,9 @@ const AdminDashboard = () => {
                                                             To: <span className="font-bold">{transaction.receivingUnitName} ({transaction.receivingUnitLocation})</span>
                                                         </>
                                                     ) : (
-                                                        `Amount: `
+                                                        `Quantity: `
                                                     )}
-                                                    <span className="font-bold">{transaction.amount}L</span>
+                                                    <span className="font-bold">{transaction.type === 'main_entry' ? transaction.quantity : transaction.quantity}L</span>
                                                     {transaction.worker?.name && <> | Worker: <span className="font-bold">{transaction.worker.name}</span></>}
                                                 </p>
                                                 <p className="text-xs text-gray-500 mt-1">{new Date(transaction.createdAt).toLocaleString()}</p>

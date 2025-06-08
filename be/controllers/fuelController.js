@@ -62,7 +62,7 @@ const transferFuelToGenerator = async (req, res) => {
         }
 
         const transaction = await GeneratorFuelTransfer.create({
-            amount,
+            quantity : amount,
             fromContainer: mainContainer._id,
             toGenerator: generator._id,
             worker: adminUser._id

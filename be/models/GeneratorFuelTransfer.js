@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const generatorFuelTransferSchema = new mongoose.Schema({
-    amount: {
+    quantity: {
         type: Number,
         required: true
     },
