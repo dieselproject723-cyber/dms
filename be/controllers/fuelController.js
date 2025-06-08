@@ -1,12 +1,13 @@
 const Generator = require('../models/generator');
 const MainContainer = require('../models/mainContainer');
-const FuelTransaction = require('../models/fuelTransaction');
+const MainFuelEntry = require('../models/MainFuelEntry');
+const GeneratorFuelTransfer = require('../models/GeneratorFuelTransfer');
 const RunLog = require('../models/runLog');
 const { notifyAdmin } = require('../utils/emailService');
 
 const addMainContainerFuel = async (req, res) => {
     try {
-        const { amount } = req.body;
+        const { quantity, rate, amount, receivedBy, receivingUnitName, receivingUnitLocation, supplyingUnitName, supplyingUnitLocation } = req.body;
         const adminUser = req.user;  // Admin user from auth middleware
 
         const mainContainer = await MainContainer.findOne();
@@ -14,18 +15,24 @@ const addMainContainerFuel = async (req, res) => {
             return res.status(404).json({ error: 'Main container not found' });
         }
 
-        const transaction = await FuelTransaction.create({
-            type: 'main_entry',
-            amount,
+        const transaction = await MainFuelEntry.create({
+            quantity,
+            rate,
+            amount: Number(amount).toFixed(2), // Ensure amount is rounded to 2 decimal places
+            receivedBy,
+            receivingUnitName,
+            receivingUnitLocation,
+            supplyingUnitName,
+            supplyingUnitLocation,
             worker: adminUser._id
         });
 
-        mainContainer.currentFuel += amount;
+        mainContainer.currentFuel = Number((mainContainer.currentFuel + quantity).toFixed(2));
         mainContainer.lastRefillDate = new Date();
         await mainContainer.save();
 
         await notifyAdmin('main_entry', {
-            amount,
+            amount: quantity,
             workerName: adminUser.name
         });
 
@@ -54,8 +61,7 @@ const transferFuelToGenerator = async (req, res) => {
             return res.status(400).json({ error: 'Generator capacity exceeded' });
         }
 
-        const transaction = await FuelTransaction.create({
-            type: 'to_generator',
+        const transaction = await GeneratorFuelTransfer.create({
             amount,
             fromContainer: mainContainer._id,
             toGenerator: generator._id,
@@ -91,7 +97,7 @@ const addRunLog = async (req, res) => {
         }
 
         const duration = Math.round((new Date(endTime) - new Date(startTime)) / 60000); // minutes
-        const fuelConsumed = (duration / 60) * generator.fuelEfficiency;
+        const fuelConsumed = Number(((duration / 60) * generator.fuelEfficiency).toFixed(2));
 
         if (generator.currentFuel < fuelConsumed) {
             return res.status(400).json({ error: 'Insufficient fuel in generator' });
@@ -107,6 +113,7 @@ const addRunLog = async (req, res) => {
         });
 
         generator.currentFuel -= fuelConsumed;
+        generator.currentFuel = Number(generator.currentFuel.toFixed(2));
         await generator.save();
 
         await notifyAdmin('run_log', {
@@ -127,10 +134,23 @@ const getStats = async (req, res) => {
     try {
         const generators = await Generator.find().populate('operator');
         const mainContainer = await MainContainer.findOne();
-        const recentTransactions = await FuelTransaction.find()
+
+        const mainEntries = await MainFuelEntry.find()
             .sort('-createdAt')
             .limit(10)
-            .populate('worker toGenerator');
+            .populate('worker', 'name');
+
+        const generatorTransfers = await GeneratorFuelTransfer.find()
+            .sort('-createdAt')
+            .limit(10)
+            .populate('worker', 'name')
+            .populate('toGenerator', 'name');
+
+        // Combine and re-sort transactions
+        const recentTransactions = [...mainEntries, ...generatorTransfers]
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .slice(0, 10);
+            
         const recentRunLogs = await RunLog.find()
             .sort('-createdAt')
             .limit(10)
@@ -159,10 +179,15 @@ const getHistory = async (req, res) => {
             };
         }
 
-        const transactions = await FuelTransaction.find(query)
-            .sort('-createdAt')
+        const mainEntries = await MainFuelEntry.find(query)
+            .populate('worker', 'name');
+
+        const generatorTransfers = await GeneratorFuelTransfer.find(query)
             .populate('worker', 'name')
             .populate('toGenerator', 'name');
+
+        const transactions = [...mainEntries, ...generatorTransfers]
+            .sort((a, b) => b.createdAt - a.createdAt);
 
         const runLogs = await RunLog.find(query)
             .sort('-createdAt')
@@ -192,12 +217,6 @@ const getWorkerHistory = async (req, res) => {
             };
         }
 
-        // Get worker's transactions (fuel entries and transfers)
-        const transactions = await FuelTransaction.find(query)
-            .sort('-createdAt')
-            .limit(20)
-            .populate('toGenerator', 'name');
-
         // Get worker's run logs
         const runLogs = await RunLog.find(query)
             .sort('-createdAt')
@@ -205,7 +224,6 @@ const getWorkerHistory = async (req, res) => {
             .populate('generator', 'name');
 
         res.json({
-            transactions,
             runLogs
         });
     } catch (error) {

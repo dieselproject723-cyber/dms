@@ -53,13 +53,6 @@ const getGenerators = async (req, res) => {
 
 const updateGenerator = async (req, res) => {
     const updates = Object.keys(req.body);
-    const allowedUpdates = ['name', 'location', 'operator'];
-    const isValidOperation = updates.every(update => allowedUpdates.includes(update));
-
-    if (!isValidOperation) {
-        return res.status(400).json({ error: 'Invalid updates' });
-    }
-
     try {
         const generator = await Generator.findById(req.params.id);
         if (!generator) {

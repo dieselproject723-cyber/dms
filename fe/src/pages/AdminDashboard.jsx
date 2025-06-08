@@ -111,10 +111,6 @@ const AdminDashboard = () => {
                     <>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                             <div className="bg-white p-6 rounded-lg shadow-lg">
-                                <h2 className="text-2xl font-semibold mb-4 text-gray-600">Add Fuel to Main Container</h2>
-                                <MainContainerEntry onSuccess={handleSuccess} />
-                            </div>
-                            <div className="bg-white p-6 rounded-lg shadow-lg">
                                 <h2 className="text-2xl font-semibold mb-4 text-gray-600">Transfer Fuel to Generator</h2>
                                 {safeGenerators.length > 0 && safeMainContainer.capacity !== undefined ? (
                                     <TransferFuel 
@@ -164,9 +160,22 @@ const AdminDashboard = () => {
                                     <div className="space-y-4 max-h-[30rem] overflow-y-auto pr-2">
                                         {safeRecentTransactions.map(transaction => (
                                             <div key={transaction._id} className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
-                                                <p className="font-semibold text-indigo-700">{transaction.type === 'main_entry' ? 'Main Container Refill' : `Transfer to ${transaction.toGenerator?.name || 'Generator'}`}</p>
+                                                <p className="font-semibold text-indigo-700">
+                                                  {transaction.type === 'main_entry' 
+                                                    ? `Main Container Refill (Qty: ${transaction.quantity}L, Rate: ${transaction.rate}, Amt: ${transaction.amount})` 
+                                                    : `Transfer to ${transaction.toGenerator?.name || 'Generator'}`}
+                                                </p>
                                                 <p className="text-sm text-gray-700 mt-1">
-                                                    Amount: <span className="font-bold">{transaction.amount}L</span>
+                                                    {transaction.type === 'main_entry' ? (
+                                                        <>
+                                                            Received By: <span className="font-bold">{transaction.receivedBy}</span> | 
+                                                            From: <span className="font-bold">{transaction.supplyingUnitName} ({transaction.supplyingUnitLocation})</span> | 
+                                                            To: <span className="font-bold">{transaction.receivingUnitName} ({transaction.receivingUnitLocation})</span>
+                                                        </>
+                                                    ) : (
+                                                        `Amount: `
+                                                    )}
+                                                    <span className="font-bold">{transaction.amount}L</span>
                                                     {transaction.worker?.name && <> | Worker: <span className="font-bold">{transaction.worker.name}</span></>}
                                                 </p>
                                                 <p className="text-xs text-gray-500 mt-1">{new Date(transaction.createdAt).toLocaleString()}</p>
@@ -201,6 +210,10 @@ const AdminDashboard = () => {
             case 'container':
                 return (
                     <div className="space-y-8">
+                        <div className="bg-white p-6 rounded-lg shadow-lg">
+                            <h2 className="text-2xl font-semibold mb-4 text-gray-600">Add Fuel to Main Container</h2>
+                            <MainContainerEntry onSuccess={handleSuccess} />
+                        </div>
                         <MainContainerManager 
                             onSuccess={handleSuccess}
                             existingContainer={safeMainContainer.capacity !== undefined ? safeMainContainer : null}
@@ -248,9 +261,9 @@ const AdminDashboard = () => {
                     <p className="mt-2">Could not load dashboard statistics. This might be due to a network issue, a backend problem, or because essential data (like main container or generators) hasn't been set up yet. Please check the browser console for specific errors.</p>
                     <button 
                         onClick={fetchStats} 
-                        className="mt-4 px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition duration-150"
+                        className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
                     >
-                        Retry Loading Data
+                        Retry Loading
                     </button>
                 </div>
             </div>
