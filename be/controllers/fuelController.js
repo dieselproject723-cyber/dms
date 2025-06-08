@@ -278,6 +278,126 @@ const updateMainContainer = async (req, res) => {
     }
 };
 
+// Get generator reports with consumption, runtime, and cost analysis
+const getGeneratorReports = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        const query = {};
+        
+        if (startDate && endDate) {
+            query.createdAt = {
+                $gte: new Date(startDate),
+                $lte: new Date(endDate)
+            };
+        }
+
+        // Get all main container entries to calculate weighted average rate
+        const mainEntries = await MainFuelEntry.find({
+            ...query,
+            quantity: { $gt: 0 } // Only consider entries with fuel
+        }).sort({ createdAt: 1 });
+
+        // Calculate weighted average rate
+        let totalFuel = 0;
+        let totalCost = 0;
+        mainEntries.forEach(entry => {
+            totalFuel += entry.quantity;
+            totalCost += entry.amount;
+        });
+        const weightedAverageRate = totalFuel > 0 ? totalCost / totalFuel : 0;
+
+        // Get all run logs for the period
+        const runLogs = await RunLog.find(query)
+            .populate('generator', 'name')
+            .populate('worker', 'name');
+
+        // Get all generator transfers for the period
+        const transfers = await GeneratorFuelTransfer.find(query)
+            .populate('toGenerator', 'name')
+            .populate('worker', 'name');
+
+        // Aggregate data by generator
+        const generatorStats = {};
+
+        // Process run logs
+        runLogs.forEach(log => {
+            const generatorId = log.generator._id.toString();
+            if (!generatorStats[generatorId]) {
+                generatorStats[generatorId] = {
+                    name: log.generator.name,
+                    totalRuntime: 0,
+                    totalFuelConsumed: 0,
+                    totalCost: 0,
+                    runCount: 0,
+                    averageEfficiency: 0
+                };
+            }
+
+            generatorStats[generatorId].totalRuntime += log.duration;
+            generatorStats[generatorId].totalFuelConsumed += log.fuelConsumed;
+            generatorStats[generatorId].totalCost += log.fuelConsumed * weightedAverageRate;
+            generatorStats[generatorId].runCount += 1;
+        });
+
+        // Process transfers
+        transfers.forEach(transfer => {
+            const generatorId = transfer.toGenerator._id.toString();
+            if (!generatorStats[generatorId]) {
+                generatorStats[generatorId] = {
+                    name: transfer.toGenerator.name,
+                    totalRuntime: 0,
+                    totalFuelConsumed: 0,
+                    totalCost: 0,
+                    runCount: 0,
+                    averageEfficiency: 0,
+                    totalFuelReceived: 0
+                };
+            }
+
+            generatorStats[generatorId].totalFuelReceived = (generatorStats[generatorId].totalFuelReceived || 0) + transfer.amount;
+        });
+
+        // Calculate averages and format data
+        const reports = Object.values(generatorStats).map(stat => ({
+            name: stat.name,
+            totalRuntime: stat.totalRuntime,
+            totalRuntimeHours: (stat.totalRuntime / 60).toFixed(2),
+            totalFuelConsumed: stat.totalFuelConsumed.toFixed(2),
+            totalFuelReceived: (stat.totalFuelReceived || 0).toFixed(2),
+            totalCost: stat.totalCost.toFixed(2),
+            runCount: stat.runCount,
+            averageEfficiency: stat.totalRuntime > 0 
+                ? (stat.totalFuelConsumed / (stat.totalRuntime / 60)).toFixed(2) 
+                : 0,
+            costPerHour: stat.totalRuntime > 0 
+                ? (stat.totalCost / (stat.totalRuntime / 60)).toFixed(2) 
+                : 0
+        }));
+
+        // Calculate overall statistics
+        const overallStats = {
+            totalRuntime: reports.reduce((sum, gen) => sum + parseFloat(gen.totalRuntimeHours), 0).toFixed(2),
+            totalFuelConsumed: reports.reduce((sum, gen) => sum + parseFloat(gen.totalFuelConsumed), 0).toFixed(2),
+            totalCost: reports.reduce((sum, gen) => sum + parseFloat(gen.totalCost), 0).toFixed(2),
+            averageEfficiency: reports.reduce((sum, gen) => sum + parseFloat(gen.averageEfficiency), 0) / reports.length,
+            weightedAverageRate: weightedAverageRate.toFixed(2)
+        };
+
+        res.json({
+            generators: reports,
+            overall: overallStats,
+            period: {
+                start: startDate ? new Date(startDate) : null,
+                end: endDate ? new Date(endDate) : null
+            }
+        });
+
+    } catch (error) {
+        console.error('Error generating reports:', error);
+        res.status(500).json({ message: 'Error generating reports', error: error.message });
+    }
+};
+
 module.exports = {
     addMainContainerFuel,
     transferFuelToGenerator,
@@ -286,5 +406,6 @@ module.exports = {
     getHistory,
     getWorkerHistory,
     createMainContainer,
-    updateMainContainer
+    updateMainContainer,
+    getGeneratorReports
 }; 

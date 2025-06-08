@@ -15,5 +15,6 @@ router.patch('/main-container', auth, isAdmin, fuelController.updateMainContaine
 router.post('/generator/transfer', auth, isAdmin, validateFuelAmount, fuelController.transferFuelToGenerator);
 router.get('/stats', auth, isAdmin, fuelController.getStats);
 router.get('/history', auth, isAdmin, fuelController.getHistory);
+router.get('/reports/generators', auth, fuelController.getGeneratorReports);
 
 module.exports = router; 

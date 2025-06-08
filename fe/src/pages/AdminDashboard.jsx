@@ -21,6 +21,7 @@ import {
   Legend,
 } from 'chart.js';
 import WorkersList from '../components/worker/WorkersList';
+import GeneratorReports from '../components/reports/GeneratorReports';
 
 ChartJS.register(
   CategoryScale,
@@ -81,6 +82,7 @@ const AdminDashboard = () => {
         { id: 'container', label: 'Main Container', icon: '🛢️' },
         { id: 'generators', label: 'Generators', icon: '⚡' },
         { id: 'workers', label: 'Workers', icon: '👥' },
+        { id: 'reports', label: 'Reports', icon: '📈' },
     ];
 
     if (loading) return <div className="p-6 text-center text-xl">Loading dashboard data...</div>;
@@ -244,6 +246,13 @@ const AdminDashboard = () => {
                             <AddWorker onSuccess={handleSuccess} />
                         </div>
                         <WorkersList workers={safeWorkers} />
+                    </div>
+                );
+
+            case 'reports':
+                return (
+                    <div className="space-y-8">
+                        <GeneratorReports />
                     </div>
                 );
 
