@@ -3,14 +3,14 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 import { getApiUrl } from '../../config/api';
 
-const WorkerActivityHistory = () => {
+const WorkerActivityHistory = ({ refreshTrigger }) => {
   const [transactions, setTransactions] = useState([]); // To store both main entries and generator transfers
   const [runLogs, setRunLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchWorkerHistory();
-  }, []);
+  }, [refreshTrigger]);
 
   const fetchWorkerHistory = async () => {
     try {

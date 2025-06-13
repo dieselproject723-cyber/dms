@@ -11,6 +11,7 @@ import ProfileButton from '../components/ProfileButton';
 const WorkerDashboard = () => {
   const { user } = useAuth();
   const [generators, setGenerators] = useState([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     fetchGenerators();
@@ -27,6 +28,7 @@ const WorkerDashboard = () => {
 
   const handleActivityUpdate = () => {
     fetchGenerators(); // Refresh generators when activities are updated
+    setRefreshTrigger(prev => prev + 1); // Increment trigger to refresh activity history
   };
 
   return (
@@ -56,7 +58,7 @@ const WorkerDashboard = () => {
       {/* Activity history section */}
       <div className="bg-white p-6 rounded-lg shadow-lg">
         <h2 className="text-xl font-semibold mb-4 text-gray-700">Your Activity History</h2>
-        <WorkerActivityHistory />
+        <WorkerActivityHistory refreshTrigger={refreshTrigger} />
       </div>
     </div>
   );

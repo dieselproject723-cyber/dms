@@ -4,7 +4,7 @@ import axios from 'axios';
 import { getApiUrl } from '../../config/api';
 import Select from 'react-select';
 
-const AddRunLog = ({ generators, onSuccess }) => {
+const AddRunLog = ({ generators, onSuccess, editingRunLog }) => {
   const [generatorId, setGeneratorId] = useState('');
   const [startTime, setStartTime] = useState(new Date());
   const [endTime, setEndTime] = useState(new Date());
@@ -23,6 +23,27 @@ const AddRunLog = ({ generators, onSuccess }) => {
   const [endHour, setEndHour] = useState(new Date().getHours());
   const [endMinute, setEndMinute] = useState(new Date().getMinutes());
 
+  // Initialize form with editingRunLog data if provided
+  useEffect(() => {
+    if (editingRunLog) {
+      setGeneratorId(editingRunLog.generator?._id || '');
+      
+      const startDate = new Date(editingRunLog.startTime);
+      setStartYear(startDate.getFullYear());
+      setStartMonth(startDate.getMonth() + 1);
+      setStartDay(startDate.getDate());
+      setStartHour(startDate.getHours());
+      setStartMinute(startDate.getMinutes());
+
+      const endDate = new Date(editingRunLog.endTime);
+      setEndYear(endDate.getFullYear());
+      setEndMonth(endDate.getMonth() + 1);
+      setEndDay(endDate.getDate());
+      setEndHour(endDate.getHours());
+      setEndMinute(endDate.getMinutes());
+    }
+  }, [editingRunLog]);
+
   // Functions to generate options
   const getYears = () => {
     const currentYear = new Date().getFullYear();
@@ -34,7 +55,20 @@ const AddRunLog = ({ generators, onSuccess }) => {
   };
 
   const getMonths = () => {
-    return Array.from({ length: 12 }, (_, i) => i + 1); // 1-12
+    return [
+      { value: 1, label: 'January' },
+      { value: 2, label: 'February' },
+      { value: 3, label: 'March' },
+      { value: 4, label: 'April' },
+      { value: 5, label: 'May' },
+      { value: 6, label: 'June' },
+      { value: 7, label: 'July' },
+      { value: 8, label: 'August' },
+      { value: 9, label: 'September' },
+      { value: 10, label: 'October' },
+      { value: 11, label: 'November' },
+      { value: 12, label: 'December' }
+    ];
   };
 
   const getDaysInMonth = (year, month) => {
@@ -77,28 +111,41 @@ const AddRunLog = ({ generators, onSuccess }) => {
     }
 
     try {
-      await axios.post(getApiUrl('/api/fuel/generator/run-log'), {
-        generatorId,
-        startTime: constructedStartTime,
-        endTime: constructedEndTime
-      });
-      toast.success('Run log added successfully');
-      setGeneratorId('');
-      const now = new Date();
-      setStartYear(now.getFullYear());
-      setStartMonth(now.getMonth() + 1);
-      setStartDay(now.getDate());
-      setStartHour(now.getHours());
-      setStartMinute(now.getMinutes());
+      if (editingRunLog) {
+        await axios.patch(getApiUrl(`/api/fuel/generator/run-log/${editingRunLog._id}`), {
+          generatorId,
+          startTime: constructedStartTime,
+          endTime: constructedEndTime
+        });
+        toast.success('Run log updated successfully');
+      } else {
+        await axios.post(getApiUrl('/api/fuel/generator/run-log'), {
+          generatorId,
+          startTime: constructedStartTime,
+          endTime: constructedEndTime
+        });
+        toast.success('Run log added successfully');
+      }
 
-      setEndYear(now.getFullYear());
-      setEndMonth(now.getMonth() + 1);
-      setEndDay(now.getDate());
-      setEndHour(now.getHours());
-      setEndMinute(now.getMinutes());
+      if (!editingRunLog) {
+        setGeneratorId('');
+        const now = new Date();
+        setStartYear(now.getFullYear());
+        setStartMonth(now.getMonth() + 1);
+        setStartDay(now.getDate());
+        setStartHour(now.getHours());
+        setStartMinute(now.getMinutes());
+
+        setEndYear(now.getFullYear());
+        setEndMonth(now.getMonth() + 1);
+        setEndDay(now.getDate());
+        setEndHour(now.getHours());
+        setEndMinute(now.getMinutes());
+      }
+      
       onSuccess?.();
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to add run log');
+      toast.error(error.response?.data?.error || `Failed to ${editingRunLog ? 'update' : 'add'} run log`);
     } finally {
       setLoading(false);
     }
@@ -126,13 +173,13 @@ const AddRunLog = ({ generators, onSuccess }) => {
         </label>
         <div className="flex space-x-2 mb-2"> {/* Date Selectors */}
           <div className="flex-1">
-            <label className="block text-xs text-gray-500 mb-1">Year</label>
+            <label className="block text-xs text-gray-500 mb-1">Day</label>
             <select
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              value={startYear}
-              onChange={(e) => setStartYear(Number(e.target.value))}
+              value={startDay}
+              onChange={(e) => setStartDay(Number(e.target.value))}
             >
-              {getYears().map(year => <option key={year} value={year}>{year}</option>)}
+              {getDays(startYear, startMonth).map(day => <option key={day} value={day}>{String(day).padStart(2, '0')}</option>)}
             </select>
           </div>
           <div className="flex-1">
@@ -142,17 +189,17 @@ const AddRunLog = ({ generators, onSuccess }) => {
               value={startMonth}
               onChange={(e) => setStartMonth(Number(e.target.value))}
             >
-              {getMonths().map(month => <option key={month} value={month}>{String(month).padStart(2, '0')}</option>)}
+              {getMonths().map(month => <option key={month.value} value={month.value}>{month.label}</option>)}
             </select>
           </div>
           <div className="flex-1">
-            <label className="block text-xs text-gray-500 mb-1">Day</label>
+            <label className="block text-xs text-gray-500 mb-1">Year</label>
             <select
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              value={startDay}
-              onChange={(e) => setStartDay(Number(e.target.value))}
+              value={startYear}
+              onChange={(e) => setStartYear(Number(e.target.value))}
             >
-              {getDays(startYear, startMonth).map(day => <option key={day} value={day}>{String(day).padStart(2, '0')}</option>)}
+              {getYears().map(year => <option key={year} value={year}>{year}</option>)}
             </select>
           </div>
         </div>
@@ -186,13 +233,13 @@ const AddRunLog = ({ generators, onSuccess }) => {
         </label>
         <div className="flex space-x-2 mb-2"> {/* Date Selectors */}
           <div className="flex-1">
-            <label className="block text-xs text-gray-500 mb-1">Year</label>
+            <label className="block text-xs text-gray-500 mb-1">Day</label>
             <select
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              value={endYear}
-              onChange={(e) => setEndYear(Number(e.target.value))}
+              value={endDay}
+              onChange={(e) => setEndDay(Number(e.target.value))}
             >
-              {getYears().map(year => <option key={year} value={year}>{year}</option>)}
+              {getDays(endYear, endMonth).map(day => <option key={day} value={day}>{String(day).padStart(2, '0')}</option>)}
             </select>
           </div>
           <div className="flex-1">
@@ -202,17 +249,17 @@ const AddRunLog = ({ generators, onSuccess }) => {
               value={endMonth}
               onChange={(e) => setEndMonth(Number(e.target.value))}
             >
-              {getMonths().map(month => <option key={month} value={month}>{String(month).padStart(2, '0')}</option>)}
+              {getMonths().map(month => <option key={month.value} value={month.value}>{month.label}</option>)}
             </select>
           </div>
           <div className="flex-1">
-            <label className="block text-xs text-gray-500 mb-1">Day</label>
+            <label className="block text-xs text-gray-500 mb-1">Year</label>
             <select
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              value={endDay}
-              onChange={(e) => setEndDay(Number(e.target.value))}
+              value={endYear}
+              onChange={(e) => setEndYear(Number(e.target.value))}
             >
-              {getDays(endYear, endMonth).map(day => <option key={day} value={day}>{String(day).padStart(2, '0')}</option>)}
+              {getYears().map(year => <option key={year} value={year}>{year}</option>)}
             </select>
           </div>
         </div>
@@ -245,7 +292,7 @@ const AddRunLog = ({ generators, onSuccess }) => {
         disabled={loading}
         className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
       >
-        {loading ? 'Adding...' : 'Add Run Log'}
+        {loading ? (editingRunLog ? 'Updating...' : 'Adding...') : (editingRunLog ? 'Update Run Log' : 'Add Run Log')}
       </button>
     </form>
   );

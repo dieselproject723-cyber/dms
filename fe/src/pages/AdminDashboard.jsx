@@ -22,6 +22,7 @@ import {
 } from 'chart.js';
 import WorkersList from '../components/worker/WorkersList';
 import GeneratorReports from '../components/reports/GeneratorReports';
+import AddRunLog from '../components/worker/AddRunLog';
 
 ChartJS.register(
   CategoryScale,
@@ -39,6 +40,8 @@ const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('dashboard');
     const [editingGenerator, setEditingGenerator] = useState(null);
+    const [editingRunLog, setEditingRunLog] = useState(null);
+    const [showEditRunLogModal, setShowEditRunLogModal] = useState(false);
 
     const fetchStats = useCallback(async () => {
         setLoading(true);
@@ -77,6 +80,16 @@ const AdminDashboard = () => {
         setEditingGenerator(null);
     };
 
+    const handleEditRunLog = (runLog) => {
+        setEditingRunLog(runLog);
+        setShowEditRunLogModal(true);
+    };
+
+    const handleCancelEditRunLog = () => {
+        setEditingRunLog(null);
+        setShowEditRunLogModal(false);
+    };
+
     const tabs = [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
         { id: 'container', label: 'Main Container', icon: '🛢️' },
@@ -92,6 +105,10 @@ const AdminDashboard = () => {
     const safeRecentTransactions = Array.isArray(stats?.recentTransactions) ? stats.recentTransactions : [];
     const safeRecentRunLogs = Array.isArray(stats?.recentRunLogs) ? stats.recentRunLogs : [];
     const safeWorkers = Array.isArray(workers) ? workers : [];
+
+    // Separate transactions by type
+    const mainContainerEntries = safeRecentTransactions.filter(t => t.type === 'main_entry');
+    const generatorTransfers = safeRecentTransactions.filter(t => t.type === 'to_generator');
 
     const generatorData = {
         labels: safeGenerators.map(g => g.name),
@@ -111,17 +128,39 @@ const AdminDashboard = () => {
             case 'dashboard':
                 return (
                     <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                            <div className="bg-white p-6 rounded-lg shadow-lg">
-                                <h2 className="text-2xl font-semibold mb-4 text-gray-600">Transfer Fuel to Generator</h2>
-                                {safeGenerators.length > 0 && safeMainContainer.capacity !== undefined ? (
-                                    <TransferFuel 
-                                        generators={safeGenerators}
-                                        mainContainer={safeMainContainer}
-                                        onSuccess={handleSuccess}
-                                    />
-                                ) : <p className="text-sm text-gray-500 pt-2">Generator or Main Container data not fully available for fuel transfer operations.</p>}
-                            </div>
+                        {/* Quick Access Links */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            <button
+                                onClick={() => setActiveTab('container')}
+                                className="bg-white p-4 rounded-lg shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center space-x-2 text-indigo-600"
+                            >
+                                <span className="text-2xl">⛽</span>
+                                <span className="font-semibold">Add Fuel to Main Container</span>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('generators')}
+                                className="bg-white p-4 rounded-lg shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center space-x-2 text-green-600"
+                            >
+                                <span className="text-2xl">⚡</span>
+                                <span className="font-semibold">Transfer Fuel to Generator</span>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setActiveTab('generators');
+                                    setEditingGenerator(null);
+                                }}
+                                className="bg-white p-4 rounded-lg shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center space-x-2 text-blue-600"
+                            >
+                                <span className="text-2xl">➕</span>
+                                <span className="font-semibold">Add New Generator</span>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('workers')}
+                                className="bg-white p-4 rounded-lg shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center space-x-2 text-purple-600"
+                            >
+                                <span className="text-2xl">👥</span>
+                                <span className="font-semibold">Add New Worker</span>
+                            </button>
                         </div>
 
                         {safeMainContainer.capacity !== undefined ? (
@@ -153,38 +192,27 @@ const AdminDashboard = () => {
                                     <Line data={generatorData} options={{ maintainAspectRatio: false, responsive: true }} />
                                 </div>
                             </div>
-                        ) : <div className="mb-8 bg-white p-6 rounded-lg shadow-lg text-gray-500 text-center">No generator data to display. Please add generators.</div>}
+                        ) : null}
                         
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <div className="bg-white p-6 rounded-lg shadow-lg">
-                                <h2 className="text-2xl font-semibold mb-4 text-gray-600">Recent Transactions</h2>
-                                {safeRecentTransactions.length > 0 ? (
+                                <h2 className="text-2xl font-semibold mb-4 text-gray-600">Recent Generator Transfers</h2>
+                                {generatorTransfers.length > 0 ? (
                                     <div className="space-y-4 max-h-[30rem] overflow-y-auto pr-2">
-                                        {safeRecentTransactions.map(transaction => (
+                                        {generatorTransfers.map(transaction => (
                                             <div key={transaction._id} className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
                                                 <p className="font-semibold text-indigo-700">
-                                                  {transaction.type === 'main_entry' 
-                                                    ? `Main Container Refill (Qty: ${transaction.quantity}L, Rate: ${transaction.rate}, Amt: ₹${transaction.amount})` 
-                                                    : `Transfer to ${transaction.toGenerator?.name || 'Generator'}`}
+                                                    Transfer to {transaction.toGenerator?.name || 'Generator'}
                                                 </p>
-                                                <p className="text-sm text-gray-700 mt-1">
-                                                    {transaction.type === 'main_entry' ? (
-                                                        <>
-                                                            Received By: <span className="font-bold">{transaction.receivedBy}</span> | 
-                                                            From: <span className="font-bold">{transaction.supplyingUnitName} ({transaction.supplyingUnitLocation})</span> | 
-                                                            To: <span className="font-bold">{transaction.receivingUnitName} ({transaction.receivingUnitLocation})</span>
-                                                        </>
-                                                    ) : (
-                                                        `Quantity: `
-                                                    )}
-                                                    <span className="font-bold">{transaction.type === 'main_entry' ? transaction.quantity : transaction.quantity}L</span>
-                                                    {transaction.worker?.name && <> | Worker: <span className="font-bold">{transaction.worker.name}</span></>}
-                                                </p>
-                                                <p className="text-xs text-gray-500 mt-1">{new Date(transaction.createdAt).toLocaleString()}</p>
+                                                <div className="text-sm text-gray-600 mt-2">
+                                                    <p>Amount: <span className="font-bold">{transaction.amount?.toFixed(2) || '0.00'}L</span></p>
+                                                    <p>Transferred by: <span className="font-bold">{transaction.worker?.name || 'Unknown'}</span></p>
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-2">{new Date(transaction.createdAt).toLocaleString()}</p>
                                             </div>
                                         ))}
                                     </div>
-                                ) : <p className="text-gray-500 text-center py-4">No recent transactions.</p>}
+                                ) : <p className="text-gray-500 text-center py-4">No recent generator transfers.</p>}
                             </div>
 
                             <div className="bg-white p-6 rounded-lg shadow-lg">
@@ -193,19 +221,55 @@ const AdminDashboard = () => {
                                     <div className="space-y-4 max-h-[30rem] overflow-y-auto pr-2">
                                         {safeRecentRunLogs.map(log => (
                                             <div key={log._id} className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
-                                                <p className="font-semibold text-green-700">{log.generator?.name || 'A Generator'}</p>
-                                                <p className="text-sm text-gray-700 mt-1">
-                                                    Duration: <span className="font-bold">{log.duration} min</span> | 
-                                                    Fuel Used: <span className="font-bold">{log.fuelConsumed?.toFixed(2) || '0.00'}L</span>
-                                                    {log.worker?.name && <> | Worker: <span className="font-bold">{log.worker.name}</span></>}
-                                                </p>
-                                                <p className="text-xs text-gray-500 mt-1">{new Date(log.createdAt).toLocaleString()}</p>
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex-1">
+                                                        <p className="font-semibold text-green-700">{log.generator?.name || 'A Generator'}</p>
+                                                        <p className="text-sm text-gray-700 mt-1">
+                                                            Duration: <span className="font-bold">{log.duration} min</span> | 
+                                                            Fuel Used: <span className="font-bold">{log.fuelConsumed?.toFixed(2) || '0.00'}L</span>
+                                                            {log.worker?.name && <> | Worker: <span className="font-bold">{log.worker.name}</span></>}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 mt-1">{new Date(log.createdAt).toLocaleString()}</p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleEditRunLog(log)}
+                                                        className="ml-4 p-2 text-gray-500 hover:text-indigo-600 transition-colors"
+                                                        title="Edit Run Log"
+                                                    >
+                                                        ✏️
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
                                 ) : <p className="text-gray-500 text-center py-4">No recent run logs.</p>}
                             </div>
                         </div>
+
+                        {/* Edit Run Log Modal */}
+                        {showEditRunLogModal && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                                <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-xl font-semibold text-gray-700">Edit Run Log</h3>
+                                        <button
+                                            onClick={handleCancelEditRunLog}
+                                            className="text-gray-500 hover:text-gray-700"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                    <AddRunLog
+                                        generators={safeGenerators}
+                                        onSuccess={() => {
+                                            handleSuccess();
+                                            handleCancelEditRunLog();
+                                        }}
+                                        editingRunLog={editingRunLog}
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </>
                 );
 
@@ -220,21 +284,76 @@ const AdminDashboard = () => {
                             onSuccess={handleSuccess}
                             existingContainer={safeMainContainer.capacity !== undefined ? safeMainContainer : null}
                         />
+                        <div className="bg-white p-6 rounded-lg shadow-lg">
+                            <h2 className="text-2xl font-semibold mb-4 text-gray-600">Recent Main Container Entries</h2>
+                            {mainContainerEntries.length > 0 ? (
+                                <div className="space-y-4 max-h-[30rem] overflow-y-auto pr-2">
+                                    {mainContainerEntries.map(transaction => (
+                                        <div key={transaction._id} className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                                            <p className="font-semibold text-indigo-700">
+                                                Main Container Refill
+                                            </p>
+                                            <div className="text-sm text-gray-600 mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                <div>
+                                                    <span className="text-gray-500 mr-1"></span>
+                                                    <span>Quantity: <span className="font-bold">{transaction.quantity?.toFixed(2) || '0.00'}L</span></span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-gray-500 mr-1"></span>
+                                                    <span>Rate: <span className="font-bold">INR {transaction.rate?.toFixed(2) || '0.00'}</span></span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-gray-500 mr-1"></span>
+                                                    <span>Amount: <span className="font-bold">INR {transaction.amount?.toFixed(2) || '0.00'}</span></span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-gray-500 mr-1">👤</span>
+                                                    <span>Received by: <span className="font-bold">{transaction.receivedBy}</span></span>
+                                                </div>
+                                            </div>
+                                            <div className="text-sm text-gray-600 mt-2">
+                                                <p>From: <span className="font-bold">{transaction.supplyingUnitName} ({transaction.supplyingUnitLocation})</span></p>
+                                                <p>To: <span className="font-bold">{transaction.receivingUnitName} ({transaction.receivingUnitLocation})</span></p>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-2">{new Date(transaction.createdAt).toLocaleString()}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : <p className="text-gray-500 text-center py-4">No recent main container entries.</p>}
+                        </div>
                     </div>
                 );
 
             case 'generators':
                 return (
                     <div className="space-y-8">
-                        <GeneratorManager 
-                            onSuccess={handleSuccess}
-                            editingGenerator={editingGenerator}
-                            onCancelEdit={handleCancelEdit}
-                        />
-                        <GeneratorsList 
-                            generators={safeGenerators}
-                            onEditGenerator={handleEditGenerator}
-                        />
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div className="bg-white p-6 rounded-lg shadow-lg">
+                                <h2 className="text-2xl font-semibold mb-4 text-gray-600">Transfer Fuel to Generator</h2>
+                                {safeGenerators.length > 0 && safeMainContainer.capacity !== undefined ? (
+                                    <TransferFuel 
+                                        generators={safeGenerators}
+                                        mainContainer={safeMainContainer}
+                                        onSuccess={handleSuccess}
+                                    />
+                                ) : <p className="text-sm text-gray-500 pt-2">Generator or Main Container data not fully available for fuel transfer operations.</p>}
+                            </div>
+                            <div className="bg-white p-6 rounded-lg shadow-lg">
+                                <h2 className="text-2xl font-semibold mb-4 text-gray-600">Add/Edit Generator</h2>
+                                <GeneratorManager 
+                                    onSuccess={handleSuccess}
+                                    editingGenerator={editingGenerator}
+                                    onCancelEdit={handleCancelEdit}
+                                />
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-lg shadow-lg">
+                            <h2 className="text-2xl font-semibold mb-4 text-gray-600">All Generators</h2>
+                            <GeneratorsList 
+                                generators={safeGenerators}
+                                onEditGenerator={handleEditGenerator}
+                            />
+                        </div>
                     </div>
                 );
 

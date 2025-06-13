@@ -146,8 +146,19 @@ const getStats = async (req, res) => {
             .populate('worker', 'name')
             .populate('toGenerator', 'name');
 
+        // Add type field to each transaction
+        const mainEntriesWithType = mainEntries.map(entry => ({
+            ...entry.toObject(),
+            type: 'main_entry'
+        }));
+
+        const generatorTransfersWithType = generatorTransfers.map(transfer => ({
+            ...transfer.toObject(),
+            type: 'to_generator'
+        }));
+
         // Combine and re-sort transactions
-        const recentTransactions = [...mainEntries, ...generatorTransfers]
+        const recentTransactions = [...mainEntriesWithType, ...generatorTransfersWithType]
             .sort((a, b) => b.createdAt - a.createdAt)
             .slice(0, 10);
             
@@ -316,6 +327,11 @@ const getGeneratorReports = async (req, res) => {
             .populate('toGenerator', 'name')
             .populate('worker', 'name');
 
+        // Get current date info for filtering
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+
         // Aggregate data by generator
         const generatorStats = {};
 
@@ -329,14 +345,43 @@ const getGeneratorReports = async (req, res) => {
                     totalFuelConsumed: 0,
                     totalCost: 0,
                     runCount: 0,
-                    averageEfficiency: 0
+                    averageEfficiency: 0,
+                    // New fields for period-specific stats
+                    runtimeThisMonth: 0,
+                    runtimeThisYear: 0,
+                    runtimeTotal: 0,
+                    fuelConsumedThisMonth: 0,
+                    fuelConsumedThisYear: 0,
+                    fuelConsumedTotal: 0,
+                    costThisMonth: 0,
+                    costThisYear: 0,
+                    costTotal: 0
                 };
             }
 
+            const logDate = new Date(log.createdAt);
+            const logCost = log.fuelConsumed * weightedAverageRate;
+
+            // Update total stats
             generatorStats[generatorId].totalRuntime += log.duration;
             generatorStats[generatorId].totalFuelConsumed += log.fuelConsumed;
-            generatorStats[generatorId].totalCost += log.fuelConsumed * weightedAverageRate;
+            generatorStats[generatorId].totalCost += logCost;
             generatorStats[generatorId].runCount += 1;
+
+            // Update period-specific stats
+            if (logDate >= startOfMonth) {
+                generatorStats[generatorId].runtimeThisMonth += log.duration;
+                generatorStats[generatorId].fuelConsumedThisMonth += log.fuelConsumed;
+                generatorStats[generatorId].costThisMonth += logCost;
+            }
+            if (logDate >= startOfYear) {
+                generatorStats[generatorId].runtimeThisYear += log.duration;
+                generatorStats[generatorId].fuelConsumedThisYear += log.fuelConsumed;
+                generatorStats[generatorId].costThisYear += logCost;
+            }
+            generatorStats[generatorId].runtimeTotal += log.duration;
+            generatorStats[generatorId].fuelConsumedTotal += log.fuelConsumed;
+            generatorStats[generatorId].costTotal += logCost;
         });
 
         // Process transfers
@@ -350,7 +395,17 @@ const getGeneratorReports = async (req, res) => {
                     totalCost: 0,
                     runCount: 0,
                     averageEfficiency: 0,
-                    totalFuelReceived: 0
+                    totalFuelReceived: 0,
+                    // Initialize new fields
+                    runtimeThisMonth: 0,
+                    runtimeThisYear: 0,
+                    runtimeTotal: 0,
+                    fuelConsumedThisMonth: 0,
+                    fuelConsumedThisYear: 0,
+                    fuelConsumedTotal: 0,
+                    costThisMonth: 0,
+                    costThisYear: 0,
+                    costTotal: 0
                 };
             }
 
@@ -371,7 +426,17 @@ const getGeneratorReports = async (req, res) => {
                 : 0,
             costPerHour: stat.totalRuntime > 0 
                 ? (stat.totalCost / (stat.totalRuntime / 60)).toFixed(2) 
-                : 0
+                : 0,
+            // Add new period-specific stats
+            runtimeThisMonth: (stat.runtimeThisMonth / 60).toFixed(2),
+            runtimeThisYear: (stat.runtimeThisYear / 60).toFixed(2),
+            runtimeTotal: (stat.runtimeTotal / 60).toFixed(2),
+            fuelConsumedThisMonth: stat.fuelConsumedThisMonth.toFixed(2),
+            fuelConsumedThisYear: stat.fuelConsumedThisYear.toFixed(2),
+            fuelConsumedTotal: stat.fuelConsumedTotal.toFixed(2),
+            costThisMonth: stat.costThisMonth.toFixed(2),
+            costThisYear: stat.costThisYear.toFixed(2),
+            costTotal: stat.costTotal.toFixed(2)
         }));
 
         // Calculate overall statistics
