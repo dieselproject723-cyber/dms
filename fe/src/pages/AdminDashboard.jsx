@@ -1,28 +1,29 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Line } from 'react-chartjs-2';
-import axios from 'axios';
-import { toast } from 'react-toastify';
-import MainContainerEntry from '../components/worker/MainContainerEntry';
-import TransferFuel from '../components/worker/TransferFuel';
-import AddWorker from '../components/worker/AddWorker';
-import MainContainerManager from '../components/worker/MainContainerManager';
-import GeneratorManager from '../components/worker/GeneratorManager';
-import GeneratorsList from '../components/worker/GeneratorsList';
-import ProfileButton from '../components/ProfileButton';
-import { getApiUrl } from '../config/api';
 import {
-  Chart as ChartJS,
   CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LineElement,
   LinearScale,
   PointElement,
-  LineElement,
   Title,
   Tooltip,
-  Legend,
 } from 'chart.js';
-import WorkersList from '../components/worker/WorkersList';
-import GeneratorReports from '../components/reports/GeneratorReports';
+import React, { useCallback, useEffect, useState } from 'react';
+
 import AddRunLog from '../components/worker/AddRunLog';
+import AddWorker from '../components/worker/AddWorker';
+import GeneratorManager from '../components/worker/GeneratorManager';
+import GeneratorReports from '../components/reports/GeneratorReports';
+import GeneratorsList from '../components/worker/GeneratorsList';
+import { Line } from 'react-chartjs-2';
+import MainContainerEntry from '../components/worker/MainContainerEntry';
+import MainContainerManager from '../components/worker/MainContainerManager';
+import ProfileButton from '../components/ProfileButton';
+import TransferFuel from '../components/worker/TransferFuel';
+import WorkersList from '../components/worker/WorkersList';
+import axios from 'axios';
+import { getApiUrl } from '../config/api';
+import { toast } from 'react-toastify';
 
 ChartJS.register(
   CategoryScale,
@@ -205,7 +206,7 @@ const AdminDashboard = () => {
                                                     Transfer to {transaction.toGenerator?.name || 'Generator'}
                                                 </p>
                                                 <div className="text-sm text-gray-600 mt-2">
-                                                    <p>Amount: <span className="font-bold">{transaction.amount?.toFixed(2) || '0.00'}L</span></p>
+                                                    <p>Amount: <span className="font-bold">{transaction.quantity?.toFixed(2) || '0.00'}L</span></p>
                                                     <p>Transferred by: <span className="font-bold">{transaction.worker?.name || 'Unknown'}</span></p>
                                                 </div>
                                                 <p className="text-xs text-gray-500 mt-2">{new Date(transaction.createdAt).toLocaleString()}</p>
