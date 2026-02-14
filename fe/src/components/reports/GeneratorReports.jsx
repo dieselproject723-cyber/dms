@@ -5,10 +5,24 @@ import { getApiUrl } from '../../config/api';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 
+// Current financial year in India: 1 April to 31 March
+const getFinancialYearStart = () => {
+    const now = new Date();
+    const year = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1; // April = month 3
+    return new Date(year, 3, 1); // 1 April, 00:00:00
+};
+
+const PERIODS = {
+    last30: 'Last 30 days',
+    financialYear: 'Current Financial Year',
+    custom: 'Custom range'
+};
+
 const GeneratorReports = () => {
     const [reports, setReports] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 30))); // Last 30 days
+    const [period, setPeriod] = useState('financialYear'); // default: current FY
+    const [startDate, setStartDate] = useState(() => getFinancialYearStart());
     const [endDate, setEndDate] = useState(new Date());
     const [showColumnFilter, setShowColumnFilter] = useState(false);
     const [visibleColumns, setVisibleColumns] = useState({
@@ -47,6 +61,23 @@ const GeneratorReports = () => {
         }
     };
 
+    const applyPeriod = (p) => {
+        setPeriod(p);
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        if (p === 'last30') {
+            const start = new Date(today);
+            start.setDate(start.getDate() - 30);
+            start.setHours(0, 0, 0, 0);
+            setStartDate(start);
+            setEndDate(today);
+        } else if (p === 'financialYear') {
+            setStartDate(getFinancialYearStart());
+            setEndDate(today);
+        }
+        // 'custom' keeps existing startDate/endDate; user changes via pickers
+    };
+
     useEffect(() => {
         fetchReports();
     }, [startDate, endDate]);
@@ -72,6 +103,53 @@ const GeneratorReports = () => {
         return `${totalHours}h ${minutes}m`;
     };
 
+    // CSV export: all fields with headers
+    const CSV_COLUMNS = [
+        { key: 'name', label: 'Generator' },
+        { key: 'totalRuntimeHours', label: 'Runtime (hrs)' },
+        { key: 'totalFuelConsumed', label: 'Fuel Consumed (L)' },
+        { key: 'totalFuelReceived', label: 'Fuel Received (L)' },
+        { key: 'totalCost', label: 'Cost (₹)' },
+        { key: 'averageEfficiency', label: 'Efficiency (L/hr)' },
+        { key: 'costPerHour', label: 'Cost/Hour (₹)' },
+        { key: 'runtimeThisMonth', label: 'Runtime (This Month)' },
+        { key: 'runtimeThisYear', label: 'Runtime (This Year)' },
+        { key: 'runtimeTotal', label: 'Runtime (Total)' },
+        { key: 'fuelConsumedThisMonth', label: 'Fuel (This Month)' },
+        { key: 'fuelConsumedThisYear', label: 'Fuel (This Year)' },
+        { key: 'fuelConsumedTotal', label: 'Fuel (Total)' },
+        { key: 'costThisMonth', label: 'Cost (This Month)' },
+        { key: 'costThisYear', label: 'Cost (This Year)' },
+        { key: 'costTotal', label: 'Cost (Total)' }
+    ];
+
+    const escapeCsvCell = (value) => {
+        if (value == null) return '';
+        const str = String(value);
+        if (/[",\n\r]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+        return str;
+    };
+
+    const downloadCsv = () => {
+        if (!reports?.generators?.length) {
+            toast.info('No data to export');
+            return;
+        }
+        const headers = CSV_COLUMNS.map(c => escapeCsvCell(c.label)).join(',');
+        const rows = reports.generators.map(gen =>
+            CSV_COLUMNS.map(col => escapeCsvCell(gen[col.key])).join(',')
+        );
+        const csv = [headers, ...rows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `generator-report-${startDate.toISOString().slice(0, 10)}-to-${endDate.toISOString().slice(0, 10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success('Report downloaded');
+    };
+
     if (loading) {
         return (
             <div className="bg-white p-6 rounded-lg shadow">
@@ -87,14 +165,73 @@ const GeneratorReports = () => {
         <div className="space-y-6">
             {/* Generator Details Table */}
             <div className="bg-white p-6 rounded-lg shadow-lg">
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
                     <h2 className="text-2xl font-semibold text-gray-600">Generator Performance Report</h2>
-                    <div className="relative">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-sm text-gray-500">Period:</span>
+                        <div className="flex flex-wrap gap-2">
+                            {Object.entries(PERIODS).map(([key, label]) => (
+                                <button
+                                    key={key}
+                                    type="button"
+                                    onClick={() => applyPeriod(key)}
+                                    className={`px-3 py-1.5 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 ${
+                                        period === key
+                                            ? 'bg-indigo-600 text-white'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+                        {period === 'custom' && (
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <DatePicker
+                                    selected={startDate}
+                                    onChange={(d) => setStartDate(d)}
+                                    selectsStart
+                                    startDate={startDate}
+                                    endDate={endDate}
+                                    className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+                                    dateFormat="dd/MM/yyyy"
+                                />
+                                <span className="text-gray-400">to</span>
+                                <DatePicker
+                                    selected={endDate}
+                                    onChange={(d) => setEndDate(d)}
+                                    selectsEnd
+                                    startDate={startDate}
+                                    endDate={endDate}
+                                    minDate={startDate}
+                                    className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+                                    dateFormat="dd/MM/yyyy"
+                                />
+                            </div>
+                        )}
+                        {period !== 'custom' && (
+                            <span className="text-sm text-gray-500">
+                                {startDate.toLocaleDateString('en-IN')} – {endDate.toLocaleDateString('en-IN')}
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
                         <button
-                            onClick={() => setShowColumnFilter(!showColumnFilter)}
+                            type="button"
+                            onClick={downloadCsv}
                             className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                         >
-                            <span>Columns</span>
+                            <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span>Download CSV</span>
+                        </button>
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowColumnFilter(!showColumnFilter)}
+                                className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                                <span>Columns</span>
                             <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                             </svg>
@@ -267,6 +404,7 @@ const GeneratorReports = () => {
                                 </div>
                             </div>
                         )}
+                        </div>
                     </div>
                 </div>
 
