@@ -177,7 +177,7 @@ const AdminDashboard = () => {
                                         <svg className="w-full h-full" viewBox="0 0 36 36">
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e6e6e6" strokeWidth="3.5" />
                                             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={safeMainContainer.currentFuel / safeMainContainer.capacity >= 0.2 ? "#4CAF50" : "#F44336"} strokeWidth="3.5" strokeDasharray={`${(safeMainContainer.currentFuel / safeMainContainer.capacity) * 100}, 100`} strokeLinecap="round" />
-                                            <text x="18" y="20.5" textAnchor="middle" className="text-base font-bold fill-current text-gray-700">
+                                            <text x="18" y="20.5" textAnchor="middle" className="text-[10px] font-bold fill-current text-gray-700">
                                                 {safeMainContainer.capacity ? `${Math.round((safeMainContainer.currentFuel / safeMainContainer.capacity) * 100)}%` : 'N/A'}
                                             </text>
                                         </svg>
