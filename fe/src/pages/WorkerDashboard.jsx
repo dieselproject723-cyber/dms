@@ -7,6 +7,7 @@ import GeneratorList from '../components/worker/GeneratorList';
 import AddRunLog from '../components/worker/AddRunLog';
 import WorkerActivityHistory from '../components/worker/WorkerActivityHistory';
 import ProfileButton from '../components/ProfileButton';
+import mesLogo from '../assets/mes_logo.png';
 
 const WorkerDashboard = () => {
   const { user } = useAuth();
@@ -35,9 +36,12 @@ const WorkerDashboard = () => {
     <div className="container mx-auto px-4 py-8">
       {/* Header with title and profile */}
       <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Worker Dashboard</h1>
-          <p className="text-gray-600 mt-2">Welcome back, {user?.name}!</p>
+        <div className="flex items-center gap-3">
+          <img src={mesLogo} alt="MES Logo" className="h-14 w-14 object-contain" />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Worker Dashboard</h1>
+            <p className="text-gray-600 mt-2">Welcome back, {user?.name}!</p>
+          </div>
         </div>
         <ProfileButton />
       </div>

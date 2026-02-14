@@ -21,6 +21,7 @@ import MainContainerManager from '../components/worker/MainContainerManager';
 import ProfileButton from '../components/ProfileButton';
 import TransferFuel from '../components/worker/TransferFuel';
 import WorkersList from '../components/worker/WorkersList';
+import mesLogo from '../assets/mes_logo.png';
 import axios from 'axios';
 import { getApiUrl } from '../config/api';
 import { toast } from 'react-toastify';
@@ -384,7 +385,10 @@ const AdminDashboard = () => {
     if (!stats) {
         return (
             <div className="p-6">
-                <h1 className="text-3xl font-bold mb-6 text-center text-gray-700">Diesel Management Dashboard</h1>
+                <div className="flex items-center justify-center gap-3 mb-6">
+                    <img src={mesLogo} alt="MES Logo" className="h-14 w-14 object-contain" />
+                    <h1 className="text-3xl font-bold text-gray-700">Diesel Management Dashboard</h1>
+                </div>
                 <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-6 mt-6 rounded-md shadow-md" role="alert">
                     <p className="font-bold text-lg">Dashboard Data Unavailable</p>
                     <p className="mt-2">Could not load dashboard statistics. This might be due to a network issue, a backend problem, or because essential data (like main container or generators) hasn't been set up yet. Please check the browser console for specific errors.</p>
@@ -403,7 +407,10 @@ const AdminDashboard = () => {
         <div className="p-6 bg-gray-50 min-h-screen">
             {/* Header with title and profile */}
             <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold text-gray-700">Diesel Management Dashboard</h1>
+                <div className="flex items-center gap-3">
+                    <img src={mesLogo} alt="MES Logo" className="h-14 w-14 object-contain" />
+                    <h1 className="text-3xl font-bold text-gray-700">Diesel Management Dashboard</h1>
+                </div>
                 <ProfileButton />
             </div>
             
