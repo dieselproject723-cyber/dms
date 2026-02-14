@@ -37,7 +37,7 @@ const WorkerDashboard = () => {
       {/* Header with title and profile */}
       <div className="flex justify-between items-center mb-8">
         <div className="flex items-center gap-3">
-          <img src={mesLogo} alt="MES Logo" className="h-14 w-14 object-contain" />
+          <img src={mesLogo} alt="MES Logo" className="h-20 w-20 object-contain" />
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Worker Dashboard</h1>
             <p className="text-gray-600 mt-2">Welcome back, {user?.name}!</p>

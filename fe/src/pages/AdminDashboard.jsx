@@ -386,7 +386,7 @@ const AdminDashboard = () => {
         return (
             <div className="p-6">
                 <div className="flex items-center justify-center gap-3 mb-6">
-                    <img src={mesLogo} alt="MES Logo" className="h-14 w-14 object-contain" />
+                    <img src={mesLogo} alt="MES Logo" className="h-20 w-20 object-contain" />
                     <h1 className="text-3xl font-bold text-gray-700">Diesel Management Dashboard</h1>
                 </div>
                 <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-6 mt-6 rounded-md shadow-md" role="alert">
@@ -408,7 +408,7 @@ const AdminDashboard = () => {
             {/* Header with title and profile */}
             <div className="flex justify-between items-center mb-8">
                 <div className="flex items-center gap-3">
-                    <img src={mesLogo} alt="MES Logo" className="h-14 w-14 object-contain" />
+                    <img src={mesLogo} alt="MES Logo" className="h-20 w-20 object-contain" />
                     <h1 className="text-3xl font-bold text-gray-700">Diesel Management Dashboard</h1>
                 </div>
                 <ProfileButton />
