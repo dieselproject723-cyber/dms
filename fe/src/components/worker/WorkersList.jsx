@@ -3,7 +3,8 @@ import { useState } from 'react';
 const WorkersList = ({ workers }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredWorkers = workers.filter(worker =>
+  const workersDescending = [...workers].reverse();
+  const filteredWorkers = workersDescending.filter(worker =>
     worker.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     worker.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     worker.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
